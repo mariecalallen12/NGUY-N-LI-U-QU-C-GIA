@@ -10,10 +10,17 @@ on:
     - cron: '0 9 * * 1'
   workflow_dispatch:  # Cho phép chạy thủ công
 
+# Set default permissions to read-only for security
+permissions:
+  contents: read
+
 jobs:
   check-completion:
     name: Kiểm tra Tỷ lệ Hoàn thiện
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # For commenting on PRs
     
     steps:
     - name: Checkout code
@@ -53,6 +60,8 @@ jobs:
   cross-reference:
     name: Đối chiếu Lý thuyết và Thực tế
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -76,6 +85,8 @@ jobs:
   code-quality:
     name: Kiểm tra Chất lượng Code
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -114,6 +125,8 @@ jobs:
   security-check:
     name: Kiểm tra Bảo mật
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -145,6 +158,8 @@ jobs:
   documentation-check:
     name: Kiểm tra Tài liệu
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -182,6 +197,8 @@ jobs:
     needs: [check-completion, cross-reference, code-quality, security-check, documentation-check]
     runs-on: ubuntu-latest
     if: always()
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code

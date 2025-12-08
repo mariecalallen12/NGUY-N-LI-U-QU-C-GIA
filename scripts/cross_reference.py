@@ -29,14 +29,6 @@ class ProjectAnalyzer:
     
     def __init__(self, project_root: Path):
         self.project_root = project_root
-        self.findings = {
-            'backend': {},
-            'frontend': {},
-            'database': {},
-            'testing': {},
-            'documentation': {},
-            'devops': {}
-        }
     
     def scan_project_structure(self) -> Dict[str, bool]:
         """
