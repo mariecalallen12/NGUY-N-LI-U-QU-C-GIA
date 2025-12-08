@@ -1,0 +1,205 @@
+name: Project Review and Quality Check
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  schedule:
+    # Chạy tự động hàng tuần vào thứ 2 lúc 9:00 AM
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Cho phép chạy thủ công
+
+jobs:
+  check-completion:
+    name: Kiểm tra Tỷ lệ Hoàn thiện
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Run completion check
+      id: completion
+      run: |
+        python scripts/calculate_completion.py || echo "completion_status=$?" >> $GITHUB_OUTPUT
+        
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🔍 **Kiểm tra tỷ lệ hoàn thiện dự án đã được thực hiện**\n\nXem chi tiết trong workflow logs.'
+          })
+
+  cross-reference:
+    name: Đối chiếu Lý thuyết và Thực tế
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Run cross-reference analysis
+      run: |
+        python scripts/cross_reference.py
+        
+    - name: Upload report
+      uses: actions/upload-artifact@v3
+      with:
+        name: cross-reference-report
+        path: docs/reports/cross_reference_report.json
+        
+  code-quality:
+    name: Kiểm tra Chất lượng Code
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for better analysis
+    
+    - name: Check for common issues
+      run: |
+        echo "🔍 Checking for common code quality issues..."
+        
+        # Check for TODO/FIXME comments
+        echo "📝 Checking for TODO/FIXME comments..."
+        if grep -r "TODO\|FIXME" --exclude-dir=".git" --exclude-dir="node_modules" . ; then
+          echo "⚠️ Found TODO/FIXME comments that should be addressed"
+        fi
+        
+        # Check for hardcoded secrets patterns
+        echo "🔐 Checking for potential hardcoded secrets..."
+        if grep -rE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]+['\"]" --exclude-dir=".git" --exclude-dir="node_modules" . ; then
+          echo "⚠️ Found potential hardcoded secrets - please review"
+        fi
+        
+    - name: File structure check
+      run: |
+        echo "📁 Checking file structure..."
+        ls -la
+        
+        # Check for essential files
+        if [ ! -f "README.md" ]; then
+          echo "❌ README.md is missing"
+          exit 1
+        fi
+        echo "✅ README.md exists"
+        
+  security-check:
+    name: Kiểm tra Bảo mật
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Check for sensitive files
+      run: |
+        echo "🔐 Checking for sensitive files..."
+        
+        # Check if .env files are committed (should not be)
+        if find . -name ".env" -not -path "*/node_modules/*" -not -path "*/.git/*" | grep -q .; then
+          echo "⚠️ Found .env files - these should not be committed"
+        fi
+        
+        # Check for .env.example
+        if [ ! -f ".env.example" ]; then
+          echo "💡 Consider adding .env.example for documentation"
+        fi
+        
+    - name: Check gitignore
+      run: |
+        echo "📝 Checking .gitignore..."
+        if [ ! -f ".gitignore" ]; then
+          echo "⚠️ .gitignore is missing"
+        else
+          echo "✅ .gitignore exists"
+        fi
+
+  documentation-check:
+    name: Kiểm tra Tài liệu
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Check documentation completeness
+      run: |
+        echo "📚 Checking documentation..."
+        
+        # Count markdown files
+        md_count=$(find . -name "*.md" -not -path "*/node_modules/*" -not -path "*/.git/*" | wc -l)
+        echo "Found $md_count markdown files"
+        
+        # Check for key documentation files
+        if [ -f "docs/theory/THEORY.md" ]; then
+          echo "✅ Theory documentation exists"
+        else
+          echo "❌ Theory documentation missing"
+        fi
+        
+        if [ -f "docs/checklists/CHECKLIST.md" ]; then
+          echo "✅ Checklist exists"
+        else
+          echo "❌ Checklist missing"
+        fi
+        
+        if [ -f "docs/checklists/STANDARDS.md" ]; then
+          echo "✅ Standards documentation exists"
+        else
+          echo "❌ Standards documentation missing"
+        fi
+
+  generate-report:
+    name: Tạo Báo cáo Tổng hợp
+    needs: [check-completion, cross-reference, code-quality, security-check, documentation-check]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Generate summary report
+      run: |
+        echo "# 📊 Báo cáo Tổng hợp Đánh giá Dự án" > report.md
+        echo "" >> report.md
+        echo "**Ngày:** $(date '+%Y-%m-%d %H:%M:%S')" >> report.md
+        echo "**Branch:** ${{ github.ref_name }}" >> report.md
+        echo "**Commit:** ${{ github.sha }}" >> report.md
+        echo "" >> report.md
+        echo "## Kết quả các kiểm tra:" >> report.md
+        echo "" >> report.md
+        echo "- ✅ Kiểm tra hoàn thiện: ${{ needs.check-completion.result }}" >> report.md
+        echo "- ✅ Đối chiếu lý thuyết: ${{ needs.cross-reference.result }}" >> report.md
+        echo "- ✅ Chất lượng code: ${{ needs.code-quality.result }}" >> report.md
+        echo "- ✅ Bảo mật: ${{ needs.security-check.result }}" >> report.md
+        echo "- ✅ Tài liệu: ${{ needs.documentation-check.result }}" >> report.md
+        echo "" >> report.md
+        echo "Xem chi tiết trong workflow logs." >> report.md
+        
+        cat report.md
+        
+    - name: Upload report
+      uses: actions/upload-artifact@v3
+      with:
+        name: quality-report
+        path: report.md

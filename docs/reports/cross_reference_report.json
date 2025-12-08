@@ -1,0 +1,40 @@
+{
+  "structure": {
+    "has_backend": false,
+    "has_frontend": false,
+    "has_database": false,
+    "has_tests": false,
+    "has_docs": true,
+    "has_devops": true
+  },
+  "backend": {
+    "backend_files": 2,
+    "has_api_structure": false,
+    "has_authentication": false,
+    "has_data_models": false
+  },
+  "database": {
+    "has_migrations": false,
+    "has_schema": false,
+    "has_seed_data": false
+  },
+  "testing": {
+    "test_files": 0,
+    "has_test_config": false
+  },
+  "documentation": {
+    "documentation_files": 9,
+    "has_readme": true,
+    "has_api_docs": false
+  },
+  "devops": {
+    "has_ci_cd": true,
+    "has_containerization": false,
+    "has_env_config": false
+  },
+  "summary": {
+    "total_checks": 21,
+    "passed_checks": 6,
+    "completion_rate": 28.57142857142857
+  }
+}
