@@ -9,7 +9,23 @@ from pathlib import Path
 from typing import Dict, List, Set
 
 class ProjectAnalyzer:
-    """Phân tích dự án và đối chiếu với yêu cầu lý thuyết"""
+    """
+    Phân tích dự án và đối chiếu với yêu cầu lý thuyết.
+    
+    Class này quét cấu trúc dự án, phát hiện các components (Backend, Frontend, 
+    Database, Testing, Documentation, DevOps) và đánh giá tính đầy đủ so với 
+    yêu cầu lý thuyết.
+    
+    Workflow:
+    1. Khởi tạo ProjectAnalyzer với project_root
+    2. Gọi generate_report() để tạo báo cáo đầy đủ
+    3. Sử dụng print_report() để hiển thị kết quả
+    
+    Example:
+        analyzer = ProjectAnalyzer(Path('/path/to/project'))
+        report = analyzer.generate_report()
+        print_report(report)
+    """
     
     def __init__(self, project_root: Path):
         self.project_root = project_root
@@ -228,16 +244,17 @@ class ProjectAnalyzer:
         devops = self.analyze_devops()
         
         # Calculate completion score
+        # Only count boolean checks for pass/fail, not file counts
         total_checks = 0
         passed_checks = 0
         
         for category in [structure, backend, database, testing, documentation, devops]:
-            for value in category.values():
-                total_checks += 1
-                if isinstance(value, bool) and value:
-                    passed_checks += 1
-                elif isinstance(value, int) and value > 0:
-                    passed_checks += 1
+            for key, value in category.items():
+                # Only count boolean checks as completion criteria
+                if isinstance(value, bool):
+                    total_checks += 1
+                    if value:
+                        passed_checks += 1
         
         completion_rate = (passed_checks / total_checks * 100) if total_checks > 0 else 0
         

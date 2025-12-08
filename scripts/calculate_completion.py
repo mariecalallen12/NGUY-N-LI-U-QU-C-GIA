@@ -8,6 +8,11 @@ import sys
 from pathlib import Path
 from typing import Dict, Tuple
 
+# Exit codes
+EXIT_SUCCESS = 0
+EXIT_ERROR = 1
+EXIT_INCOMPLETE = 2
+
 def count_checklist_items(content: str) -> Tuple[int, int]:
     """
     Đếm số items trong checklist và số items đã hoàn thành
@@ -149,11 +154,11 @@ def main():
     
     # Exit code dựa trên completion rate
     if 'error' in analysis:
-        sys.exit(1)
+        sys.exit(EXIT_ERROR)
     elif analysis['completion_rate'] < 100:
-        sys.exit(2)  # Chưa hoàn thiện 100%
+        sys.exit(EXIT_INCOMPLETE)  # Chưa hoàn thiện 100%
     else:
-        sys.exit(0)  # Hoàn thiện 100%
+        sys.exit(EXIT_SUCCESS)  # Hoàn thiện 100%
 
 if __name__ == '__main__':
     main()
